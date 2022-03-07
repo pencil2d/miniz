@@ -1,4 +1,4 @@
-/**************************************************************************
+﻿/**************************************************************************
  *
  * Copyright 2013-2014 RAD Game Tools and Valve Software
  * Copyright 2010-2014 Rich Geldreich and Tenacious Software LLC
@@ -2976,7 +2976,7 @@ void tinfl_decompressor_free(tinfl_decompressor *pDecomp)
 #ifndef MINIZ_NO_ARCHIVE_APIS
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 /* ------------------- .ZIP archive reading */
@@ -2986,17 +2986,40 @@ extern "C" {
 #else
 #include <sys/stat.h>
 
-#if defined(_MSC_VER) || defined(__MINGW64__)
+#if defined(_MSC_VER) || defined(__MINGW64__) || defined(__MINGW32__)
+
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <string>
+
+static std::wstring convert_to_utf16(const char *s)
+{
+    std::wstring utf16String;
+    int inputSize = strlen(s);
+    int requiredSize = MultiByteToWideChar(CP_UTF8, 0, s, inputSize, 0, 0);
+    if( requiredSize > 0 )
+    {
+        utf16String.resize(requiredSize);
+        MultiByteToWideChar(CP_UTF8, 0, s, inputSize, &utf16String[0], requiredSize);
+    }
+    return utf16String;
+}
 static FILE *mz_fopen(const char *pFilename, const char *pMode)
 {
+    std::wstring wideFilename = convert_to_utf16(pFilename);
+    std::wstring wideMode = convert_to_utf16(pMode);
+
     FILE *pFile = NULL;
-    fopen_s(&pFile, pFilename, pMode);
+    _wfopen_s(&pFile, wideFilename.c_str(), wideMode.c_str());
     return pFile;
 }
 static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
 {
+    std::wstring widePath = convert_to_utf16(pPath);
+    std::wstring wideMode = convert_to_utf16(pMode);
+
     FILE *pFile = NULL;
-    if (freopen_s(&pFile, pPath, pMode, pStream))
+    if (_wfreopen_s(&pFile, widePath.c_str(), wideMode.c_str(), pStream))
         return NULL;
     return pFile;
 }
@@ -3014,21 +3037,21 @@ static FILE *mz_freopen(const char *pPath, const char *pMode, FILE *pStream)
 #define MZ_FFLUSH fflush
 #define MZ_FREOPEN mz_freopen
 #define MZ_DELETE_FILE remove
-#elif defined(__MINGW32__)
-#ifndef MINIZ_NO_TIME
-#include <sys/utime.h>
-#endif
-#define MZ_FOPEN(f, m) fopen(f, m)
-#define MZ_FCLOSE fclose
-#define MZ_FREAD fread
-#define MZ_FWRITE fwrite
-#define MZ_FTELL64 ftello64
-#define MZ_FSEEK64 fseeko64
-#define MZ_FILE_STAT_STRUCT _stat
-#define MZ_FILE_STAT _stat
-#define MZ_FFLUSH fflush
-#define MZ_FREOPEN(f, m, s) freopen(f, m, s)
-#define MZ_DELETE_FILE remove
+//#elif defined(__MINGW32__)
+//#ifndef MINIZ_NO_TIME
+//#include <sys/utime.h>
+//#endif
+//#define MZ_FOPEN(f, m) fopen(f, m)
+//#define MZ_FCLOSE fclose
+//#define MZ_FREAD fread
+//#define MZ_FWRITE fwrite
+//#define MZ_FTELL64 ftello64
+//#define MZ_FSEEK64 fseeko64
+//#define MZ_FILE_STAT_STRUCT _stat
+//#define MZ_FILE_STAT _stat
+//#define MZ_FFLUSH fflush
+//#define MZ_FREOPEN(f, m, s) freopen(f, m, s)
+//#define MZ_DELETE_FILE remove
 #elif defined(__TINYC__)
 #ifndef MINIZ_NO_TIME
 #include <sys/utime.h>
@@ -6180,8 +6203,8 @@ mz_bool mz_zip_writer_add_mem_ex_v2(mz_zip_archive *pZip, const char *pArchive_n
     if (!pState->m_zip64)
     {
         /* Bail early if the archive would obviously become too large */
-        if ((pZip->m_archive_size + num_alignment_padding_bytes + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + archive_name_size 
-			+ MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + archive_name_size + comment_size + user_extra_data_len + 
+        if ((pZip->m_archive_size + num_alignment_padding_bytes + MZ_ZIP_LOCAL_DIR_HEADER_SIZE + archive_name_size
+			+ MZ_ZIP_CENTRAL_DIR_HEADER_SIZE + archive_name_size + comment_size + user_extra_data_len +
 			pState->m_central_dir.m_size + MZ_ZIP_END_OF_CENTRAL_DIR_HEADER_SIZE + user_extra_data_central_len
 			+ MZ_ZIP_DATA_DESCRIPTER_SIZE32) > 0xFFFFFFFF)
         {
@@ -7651,7 +7674,7 @@ mz_bool mz_zip_end(mz_zip_archive *pZip)
 }
 
 #ifdef __cplusplus
-}
+//}
 #endif
 
 #endif /*#ifndef MINIZ_NO_ARCHIVE_APIS*/
